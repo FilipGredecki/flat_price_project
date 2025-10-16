@@ -50,35 +50,38 @@ def saves_links_to_csv(links_list):
         writer.writerows([[f'https://www.otodom.pl{link.split('?')[0]}','False'] for link in links_list])
 
 def save_headers_if_file_empty():
-    if  os.path.exists("flat_links.csv") and os.path.getsize("flat_links.csv") == 0:
-        with open("flat_links.csv", "w", newline="", encoding="utf-8") as file:
-            writer = csv.writer(file, delimiter=";")
-            writer.writerow(["link", "status"])
-    elif not os.path.exists("flat_links.csv"):
+    if not os.path.exists("flat_links.csv") or os.path.getsize("flat_links.csv") == 0:
         with open("flat_links.csv", "w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file, delimiter=";")
             writer.writerow(["link", "status"])
 
+
 def make_and_update_checkpoint(page_number):
-    if not os.path.exists('checkpoint'):
-        with open("checkpoint",'w',encoding='utf-8'):
+    with open("checkpoint", "w") as file:
+        file.write(str(page_number))
 
 def collecting_links_for_flats():
     save_headers_if_file_empty()
+    if os.path.exists("checkpoint") or os.path.getsize("checkpoint") == 0:
+        with open("checkpoint", "r") as file:
+            last_saved_page = int(file.read())
+    else: last_saved_page = 1
     links_list = []
     y = 0
-    for i in range(1,2401):
-        
+    for i in range(last_saved_page,2401):
         print(i,'--start')
         x = time.time()
         links_list.extend(collect_links(i))
-        print(links_list[-1])
-        if i % 10 == 0 :
+        if i % 50 == 0 :
             saves_links_to_csv(links_list)
+            make_and_update_checkpoint(i+1)
             links_list = []
             print(f'pages from{i-49} - {i}')
-            print(y,'--szacowany czas: ',(2400-i)/10*y/60)
+            print(y,'--szacowany czas: ',int((2400-i)/50*y/60),'minutes')
             y=0
         y += time.time()-x
+    if links_list:
+        saves_links_to_csv(links_list)
+        make_and_update_checkpoint(i+1)
 
 collecting_links_for_flats()
